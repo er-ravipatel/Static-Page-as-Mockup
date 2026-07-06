@@ -5,9 +5,10 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root{
-  --paper:#F1F1EE; --card:#FFFFFF; --ink:#17181A; --charcoal:#26282D;
-  --slate:#3B3E45; --muted:#6C6F76; --faint:#9A9DA3; --line:#E4E4E0; --line2:#EDEDEA;
-  --ok:#2E7D5B; --okbg:#E7F1EC; --warn:#B07A16; --warnbg:#F6EEDD; --bad:#A83A3A; --badbg:#F5E6E6;
+  --paper:#EEF1F6; --card:#FFFFFF; --ink:#141A4D; --charcoal:#1E2559;
+  --slate:#3C4168; --muted:#6C6F86; --faint:#9A9DB0; --line:#E2E4EE; --line2:#EEF0F6;
+  --ok:#2E7D5B; --okbg:#E7F1EC; --warn:#B07A16; --warnbg:#F6EEDD; --bad:#C94A44; --badbg:#F7E7E6;
+  --gold:#F5A623; --purple:#6C6FCF; --coral:#E8756B;
   --sans:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,'SF Mono','Cascadia Code','Roboto Mono',monospace;
 }
@@ -22,12 +23,12 @@ button{font-family:inherit;cursor:pointer}
 .mast{background:var(--ink);color:#fff;padding:14px 0}
 .mast .wrap{padding-top:0;padding-bottom:0;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
-.brand .logo{font-family:var(--mono);font-weight:600;letter-spacing:.14em;font-size:13px;border:1px solid #43454b;padding:4px 8px;border-radius:3px}
+.brand .logo{font-family:var(--mono);font-weight:600;letter-spacing:.14em;font-size:13px;color:var(--gold);border:1px solid var(--gold);padding:4px 8px;border-radius:3px}
 .brand .ttl{font-size:15px;font-weight:600;letter-spacing:.01em}
 .brand .ttl small{display:block;font-weight:400;color:#a7abb2;font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-top:2px}
-.seg{display:inline-flex;background:#2c2e34;border:1px solid #3a3c42;border-radius:6px;padding:2px}
-.seg button{background:transparent;border:0;color:#c3c6cc;font-size:12px;font-weight:600;padding:6px 12px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
-.seg button[aria-pressed="true"]{background:#fff;color:var(--ink)}
+.seg{display:inline-flex;background:#2a3170;border:1px solid #39407e;border-radius:6px;padding:2px}
+.seg button{background:transparent;border:0;color:#c3c6d8;font-size:12px;font-weight:600;padding:6px 12px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--gold);color:var(--ink)}
 .seg .lbl{color:#7d818a;font-size:10px;letter-spacing:.16em;text-transform:uppercase;align-self:center;padding:0 8px 0 2px}
 
 /* ---------- Context bar ---------- */
@@ -52,8 +53,8 @@ button{font-family:inherit;cursor:pointer}
 /* ---------- Section scaffolding ---------- */
 .sec{margin-top:26px}
 .sechd{display:flex;align-items:baseline;gap:12px;margin:0 0 12px}
-.sechd .n{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em}
-.sechd h2{font-size:13px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--slate);margin:0}
+.sechd .n{font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:600;letter-spacing:.05em}
+.sechd h2{font-size:13px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink);margin:0}
 .sechd .rule{flex:1;height:1px;background:var(--line)}
 
 .grid{display:grid;gap:14px}
@@ -63,7 +64,7 @@ button{font-family:inherit;cursor:pointer}
 @media(max-width:900px){.g5,.g4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
 @media(max-width:560px){.g5,.g4{grid-template-columns:1fr}}
 
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;position:relative}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;position:relative;box-shadow:0 1px 3px rgba(20,26,77,.06),0 1px 2px rgba(20,26,77,.04)}
 .card .cap{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:600}
 
 /* KPI */
@@ -120,13 +121,13 @@ td.n,th.n{text-align:right;font-family:var(--mono)}
 .bar .lab{font-size:12.5px;color:var(--slate)}
 .bar .track{position:relative;height:22px;background:var(--line2);border-radius:5px;overflow:hidden}
 .bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
-.bar .fill.t1{background:var(--charcoal)} .bar .fill.t2{background:var(--faint)}
+.bar .fill.t1{background:var(--ink)} .bar .fill.t2{background:var(--gold)}
 .bar .lim{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--bad)}
 .bar .val{font-family:var(--mono);font-size:12.5px;text-align:right}
 .barkey{display:flex;gap:16px;font-size:11px;color:var(--muted);margin:2px 0 14px 192px}
 .barkey span{display:inline-flex;align-items:center;gap:6px}
 .barkey i{width:12px;height:8px;border-radius:2px;display:inline-block}
-.barkey i.t1{background:var(--charcoal)} .barkey i.t2{background:var(--faint)} .barkey i.lim{background:var(--bad);width:2px;height:12px}
+.barkey i.t1{background:var(--ink)} .barkey i.t2{background:var(--gold)} .barkey i.lim{background:var(--bad);width:2px;height:12px}
 
 /* reasons */
 .reasons{display:flex;flex-direction:column;gap:9px}
@@ -138,7 +139,7 @@ td.n,th.n{text-align:right;font-family:var(--mono)}
 
 /* reports */
 .reports{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
-.btn{background:var(--ink);color:#fff;border:0;border-radius:7px;padding:10px 16px;font-size:13px;font-weight:600}
+.btn{background:var(--gold);color:var(--ink);border:0;border-radius:7px;padding:10px 16px;font-size:13px;font-weight:700}
 .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
 
 /* legend / footer for build map */
@@ -198,7 +199,7 @@ body.buildmap .legendbar{display:flex}
 /* ============================ MOCK DATA ============================ */
 /* Keyed to the exact fields in State_Dashboard_Field_Mapping (2 Jul). */
 const AGE_BUCKETS = ['0–30','30–60','60–90','90–120','>120'];
-const AGE_COLORS  = ['#C9CBD0','#A7885E','#B07A16','#B95C2E','#A83A3A'];
+const AGE_COLORS  = ['#6C6FCF','#8F86D2','#B87FBE','#DA7A88','#E8756B'];
 
 const SERVICES = ['Consent to Establish','Consent to Operate','Building Plan Approval','Factory License','Fire NOC','Trade License'];
 // statutory time limit (days) per service — field 5.c
