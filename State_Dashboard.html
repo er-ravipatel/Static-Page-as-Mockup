@@ -1,0 +1,502 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NSWS · State Approvals Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --paper:#F1F1EE; --card:#FFFFFF; --ink:#17181A; --charcoal:#26282D;
+  --slate:#3B3E45; --muted:#6C6F76; --faint:#9A9DA3; --line:#E4E4E0; --line2:#EDEDEA;
+  --ok:#2E7D5B; --okbg:#E7F1EC; --warn:#B07A16; --warnbg:#F6EEDD; --bad:#A83A3A; --badbg:#F5E6E6;
+  --sans:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono','Cascadia Code','Roboto Mono',monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 64px}
+
+/* ---------- Masthead ---------- */
+.mast{background:var(--ink);color:#fff;padding:14px 0}
+.mast .wrap{padding-top:0;padding-bottom:0;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand .logo{font-family:var(--mono);font-weight:600;letter-spacing:.14em;font-size:13px;border:1px solid #43454b;padding:4px 8px;border-radius:3px}
+.brand .ttl{font-size:15px;font-weight:600;letter-spacing:.01em}
+.brand .ttl small{display:block;font-weight:400;color:#a7abb2;font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-top:2px}
+.seg{display:inline-flex;background:#2c2e34;border:1px solid #3a3c42;border-radius:6px;padding:2px}
+.seg button{background:transparent;border:0;color:#c3c6cc;font-size:12px;font-weight:600;padding:6px 12px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink)}
+.seg .lbl{color:#7d818a;font-size:10px;letter-spacing:.16em;text-transform:uppercase;align-self:center;padding:0 8px 0 2px}
+
+/* ---------- Context bar ---------- */
+.ctx{background:var(--charcoal);color:#d7d9dd}
+.ctx .wrap{padding-top:10px;padding-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ctx .scope{font-family:var(--mono);font-size:12.5px;color:#eceef1;letter-spacing:.01em}
+.ctx .scope b{color:#fff}
+.ctx .sep{color:#5a5d64}
+.ctx .updated{margin-left:auto;font-size:11px;color:#9a9da3;letter-spacing:.04em}
+
+/* ---------- Filters ---------- */
+.filters{border-bottom:1px solid var(--line);background:#fbfbfa}
+.filters .wrap{padding-top:12px;padding-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.filters .eye{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-right:2px}
+.fld{position:relative}
+.fld label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 3px 2px}
+.fld select{appearance:none;font-family:var(--sans);font-size:13px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:7px 30px 7px 11px;min-width:150px}
+.fld::after{content:"";position:absolute;right:12px;bottom:15px;width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);pointer-events:none}
+.fld.date::after{display:none}
+.fld input[type=date]{font-family:var(--sans);font-size:13px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:#fff}
+
+/* ---------- Section scaffolding ---------- */
+.sec{margin-top:26px}
+.sechd{display:flex;align-items:baseline;gap:12px;margin:0 0 12px}
+.sechd .n{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em}
+.sechd h2{font-size:13px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--slate);margin:0}
+.sechd .rule{flex:1;height:1px;background:var(--line)}
+
+.grid{display:grid;gap:14px}
+.g5{grid-template-columns:repeat(5,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g2{grid-template-columns:1.05fr .95fr}
+@media(max-width:900px){.g5,.g4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+@media(max-width:560px){.g5,.g4{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;position:relative}
+.card .cap{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:600}
+
+/* KPI */
+.kpi .v{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1;letter-spacing:-.01em}
+.kpi .sub{font-size:11.5px;color:var(--muted);margin-top:7px}
+.kpi.accent-ok .v{color:var(--ok)} .kpi.accent-bad .v{color:var(--bad)} .kpi.accent-warn .v{color:var(--warn)}
+.trend{font-family:var(--mono);font-size:11px;margin-left:7px}
+.trend.up{color:var(--ok)} .trend.dn{color:var(--bad)}
+
+/* Build-status chips (monochrome, distinct from data colors) */
+.chip{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.1em;padding:2px 7px;border-radius:4px;line-height:1.5}
+.chip.live{background:var(--charcoal);color:#fff}
+.chip.build{background:transparent;color:var(--slate);border:1px solid var(--slate)}
+.chip.spec{background:transparent;color:var(--slate);border:1px dashed var(--slate)}
+.chip.spec::before{content:"?";margin-right:3px;font-weight:700}
+body.official .chip{display:none}
+body.official .remark{display:none}
+.remark{margin-top:10px;padding:8px 10px;background:#faf7f0;border:1px solid var(--warnbg);border-left:2px solid var(--warn);border-radius:5px;font-size:11.5px;color:#6a5a2e;line-height:1.4}
+.remark b{color:var(--warn);font-family:var(--mono);font-size:10px;letter-spacing:.08em;display:block;margin-bottom:2px}
+.remark.spec{background:#fbf4f4;border-color:var(--badbg);border-left-color:var(--bad);color:#7a3b3b}
+.remark.spec b{color:var(--bad)}
+
+/* Donut + legend */
+.donutwrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.donut{flex:0 0 auto}
+.leg{flex:1;min-width:180px}
+.leg .row{display:grid;grid-template-columns:14px 1fr auto auto;gap:9px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line2);font-size:12.5px}
+.leg .row:last-child{border-bottom:0}
+.leg .sw{width:12px;height:12px;border-radius:3px}
+.leg .row .c{font-family:var(--mono);text-align:right;font-weight:500}
+.leg .row .p{font-family:var(--mono);text-align:right;color:var(--muted);width:44px}
+
+/* stat mini grid */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stats .s{background:#fff;padding:12px 14px}
+.stats .s .k{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.stats .s .v{font-family:var(--mono);font-size:21px;font-weight:600;margin-top:5px}
+.stats .s .u{font-size:11px;color:var(--faint);font-weight:400;margin-left:3px}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line2)}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-family:var(--mono)}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+.pill.ok{background:var(--okbg);color:var(--ok)} .pill.warn{background:var(--warnbg);color:var(--warn)} .pill.bad{background:var(--badbg);color:var(--bad)}
+.row-link{cursor:pointer} .row-link:hover td{background:#f7f7f5}
+.mini{font-size:11px;color:var(--faint)}
+
+/* bar rows (TAT / processing) */
+.bars{display:flex;flex-direction:column;gap:11px}
+.bar{display:grid;grid-template-columns:180px 1fr 64px;gap:12px;align-items:center}
+.bar .lab{font-size:12.5px;color:var(--slate)}
+.bar .track{position:relative;height:22px;background:var(--line2);border-radius:5px;overflow:hidden}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+.bar .fill.t1{background:var(--charcoal)} .bar .fill.t2{background:var(--faint)}
+.bar .lim{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--bad)}
+.bar .val{font-family:var(--mono);font-size:12.5px;text-align:right}
+.barkey{display:flex;gap:16px;font-size:11px;color:var(--muted);margin:2px 0 14px 192px}
+.barkey span{display:inline-flex;align-items:center;gap:6px}
+.barkey i{width:12px;height:8px;border-radius:2px;display:inline-block}
+.barkey i.t1{background:var(--charcoal)} .barkey i.t2{background:var(--faint)} .barkey i.lim{background:var(--bad);width:2px;height:12px}
+
+/* reasons */
+.reasons{display:flex;flex-direction:column;gap:9px}
+.reason{display:grid;grid-template-columns:1fr 52px;gap:10px;align-items:center}
+.reason .rl{font-size:12.5px}
+.reason .rt{height:8px;background:var(--line2);border-radius:4px;margin-top:5px;overflow:hidden}
+.reason .rf{height:100%;background:var(--slate);border-radius:4px}
+.reason .rc{font-family:var(--mono);font-size:12px;text-align:right;color:var(--muted)}
+
+/* reports */
+.reports{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.btn{background:var(--ink);color:#fff;border:0;border-radius:7px;padding:10px 16px;font-size:13px;font-weight:600}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+
+/* legend / footer for build map */
+.legendbar{display:none;gap:16px;align-items:center;flex-wrap:wrap;margin-top:22px;padding:12px 16px;background:#fbfbfa;border:1px dashed var(--line);border-radius:10px;font-size:12px;color:var(--muted)}
+body.buildmap .legendbar{display:flex}
+.legendbar .lg{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.legendbar .item{display:inline-flex;align-items:center;gap:8px}
+.foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.foot .mono{font-family:var(--mono)}
+
+.hint{font-size:11.5px;color:var(--faint);margin:-4px 0 0 2px}
+</style>
+
+<div class="mast">
+  <div class="wrap">
+    <div class="brand">
+      <span class="logo">NSWS</span>
+      <span class="ttl">State Approvals Dashboard<small>National Single Window System</small></span>
+    </div>
+    <div class="seg" role="group" aria-label="View role">
+      <span class="lbl">Role</span>
+      <button id="roleState" aria-pressed="true" onclick="setRole('state')">State Secretary</button>
+      <button id="roleDpiit" aria-pressed="false" onclick="setRole('dpiit')">DPIIT / National</button>
+    </div>
+    <div class="seg" role="group" aria-label="Annotation view">
+      <span class="lbl">View</span>
+      <button id="viewOfficial" aria-pressed="true" onclick="setView('official')">Official</button>
+      <button id="viewBuild" aria-pressed="false" onclick="setView('buildmap')">Build map</button>
+    </div>
+  </div>
+</div>
+
+<div class="ctx">
+  <div class="wrap">
+    <div class="scope" id="scope"></div>
+    <div class="updated">Data as of <span class="num">02 Jul 2026, 18:00 IST</span> · Prototype — mock data</div>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="wrap">
+    <span class="eye">Filters</span>
+    <div class="fld"><label>State / UT</label>
+      <select id="fState" onchange="onStateFilter(this.value)"></select></div>
+    <div class="fld"><label>Ministry / Department</label>
+      <select><option>All departments</option><option>Industries &amp; Mines</option><option>Environment &amp; Forests</option><option>Labour &amp; Employment</option><option>Urban Development</option></select></div>
+    <div class="fld"><label>Service</label>
+      <select><option>All services</option><option>Consent to Establish</option><option>Building Plan Approval</option><option>Factory License</option><option>Fire NOC</option></select></div>
+    <div class="fld date"><label>Date range</label>
+      <select><option>FY 2025–26</option><option>Q1 2026–27</option><option>Last 30 days</option><option>Custom…</option></select></div>
+  </div>
+</div>
+
+<div class="wrap" id="app"></div>
+
+<script>
+/* ============================ MOCK DATA ============================ */
+/* Keyed to the exact fields in State_Dashboard_Field_Mapping (2 Jul). */
+const AGE_BUCKETS = ['0–30','30–60','60–90','90–120','>120'];
+const AGE_COLORS  = ['#C9CBD0','#A7885E','#B07A16','#B95C2E','#A83A3A'];
+
+const SERVICES = ['Consent to Establish','Consent to Operate','Building Plan Approval','Factory License','Fire NOC','Trade License'];
+// statutory time limit (days) per service — field 5.c
+const STAT_LIMIT = {'Consent to Establish':60,'Consent to Operate':60,'Building Plan Approval':30,'Factory License':45,'Fire NOC':30,'Trade License':30};
+
+function mkState(name, dept, base){
+  const applied = base;
+  const granted = Math.round(base*0.62);
+  const rejected= Math.round(base*0.11);
+  const inprog  = applied - granted - rejected;
+  const ageTot  = inprog;
+  const age = [0.42,0.24,0.15,0.10,0.09].map(f=>Math.round(ageTot*f));
+  age[4]+= ageTot - age.reduce((a,b)=>a+b,0); // reconcile
+  const services = SERVICES.map((s,i)=>{
+    const a = Math.round(base*[0.26,0.14,0.24,0.16,0.12,0.08][i]);
+    const med = [52,48,26,41,24,19][i] + (name.length%5) - 2;
+    return {name:s, applied:a, granted:Math.round(a*0.66), rejected:Math.round(a*0.10),
+      queries:Math.round(a*0.30), median:med, limit:STAT_LIMIT[s],
+      tat1:[210,null,150,175,90,null][i], tat2:[365,290,null,240,null,null][i]};
+  });
+  return {name,dept,
+    approvals:{applied,granted,rejected,inprog},
+    age, ageTot,
+    ptime:{avg:38+(name.length%6), min:6, max:186-(name.length%9), median:34+(name.length%5)},
+    queries: Math.round(base*0.28), rejections: rejected,
+    reasons:[['Incomplete / illegible documents',34],['Fee not paid / mismatch',22],['Site details inconsistent',18],['NOC from allied dept pending',15],['Application in wrong service',11]],
+    services,
+    fee:[
+      {dept, svc:'Consent to Establish', desc:'Based on capital investment', fee:'Slab', slab:'₹5k–₹2.5L', total:'Variable'},
+      {dept, svc:'Building Plan Approval', desc:'Per sq.m of built-up area', fee:'₹12 / sq.m', slab:'—', total:'Variable'},
+      {dept, svc:'Factory License', desc:'By worker count + HP', fee:'Slab', slab:'₹1.5k–₹80k', total:'Variable'},
+      {dept, svc:'Fire NOC', desc:'Flat, by occupancy class', fee:'₹3,000', slab:'—', total:'₹3,000'},
+    ],
+    avgFee: 18500 + (name.length*430)
+  };
+}
+
+const STATES = {
+  GJ: mkState('Gujarat','Industries & Mines',4820),
+  MH: mkState('Maharashtra','Industries, Energy & Labour',6140),
+  TN: mkState('Tamil Nadu','Industries (MSME)',5230),
+  KA: mkState('Karnataka','Commerce & Industries',4470),
+  UP: mkState('Uttar Pradesh','Infrastructure & Ind. Dev.',5980),
+  AN: mkState('Andaman & Nicobar (UT)','Industries Department',640),
+};
+const CODES = Object.keys(STATES);
+const CODE_OF = {}; CODES.forEach(c=>CODE_OF[STATES[c].name]=c);
+
+let ROLE='state', VIEW='official', CUR='GJ';
+
+/* ---- national rollup ---- */
+function national(){
+  const agg={applied:0,granted:0,rejected:0,inprog:0}, age=[0,0,0,0,0];
+  let q=0, rej=0;
+  CODES.forEach(c=>{const s=STATES[c];
+    agg.applied+=s.approvals.applied; agg.granted+=s.approvals.granted;
+    agg.rejected+=s.approvals.rejected; agg.inprog+=s.approvals.inprog;
+    s.age.forEach((v,i)=>age[i]+=v); q+=s.queries; rej+=s.rejections;});
+  return {agg,age,ageTot:age.reduce((a,b)=>a+b,0),q,rej};
+}
+
+/* ============================ HELPERS ============================ */
+const fmt = n => n.toLocaleString('en-IN');
+const pct = (a,b)=> b? Math.round(a/b*1000)/10 : 0;
+function chip(kind){
+  const map={live:['live','LIVE'],build:['build','BUILD'],spec:['spec','SPEC']};
+  const [cls,txt]=map[kind]; return `<span class="chip ${cls}">${txt}</span>`;
+}
+function remark(kind, ref, text){
+  const cls = kind==='spec'?'remark spec':'remark';
+  const tag = kind==='spec'?'Spec open · '+ref : 'To build · '+ref;
+  return `<div class="${cls}"><b>${tag}</b>${text}</div>`;
+}
+
+/* donut svg */
+function donut(vals,colors,total){
+  const R=52,C=2*Math.PI*R; let off=0;
+  const segs=vals.map((v,i)=>{
+    const len=total? v/total*C:0; const s=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${colors[i]}" stroke-width="20" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`;
+    off+=len; return s;}).join('');
+  return `<svg class="donut" width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Pendency distribution by ageing bucket">
+    <circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--line2)" stroke-width="20"/>${segs}
+    <text x="70" y="66" text-anchor="middle" font-family="var(--mono)" font-size="24" font-weight="600" fill="var(--ink)">${fmt(total)}</text>
+    <text x="70" y="84" text-anchor="middle" font-size="10" letter-spacing="1.5" fill="var(--muted)">PENDING</text></svg>`;
+}
+
+/* ============================ SECTIONS ============================ */
+function secApprovals(d){
+  const a=d.approvals; const rate=pct(a.granted,a.applied);
+  const cards=[
+    {cap:'Applied', v:fmt(a.applied), sub:'Total applications received', chip:'live'},
+    {cap:'Granted', v:fmt(a.granted), sub:'Approvals issued', chip:'live', cls:'accent-ok'},
+    {cap:'Rejected', v:fmt(a.rejected), sub:'Applications rejected', chip:'live', cls:'accent-bad'},
+    {cap:'In progress', v:fmt(a.inprog), sub:'Under processing', chip:'live', cls:'accent-warn'},
+    {cap:'Approval rate', v:rate+'%', sub:'Granted ÷ applied', chip:'build', cls:'accent-ok',
+      rk:remark('build','KPI 3.b','Approval rate (%) to be developed — not present in ministry dashboard.')},
+  ];
+  return `<section class="sec"><div class="sechd"><span class="n">03</span><h2>Approval Summary</h2><div class="rule"></div></div>
+    <div class="grid g5">${cards.map(c=>`
+      <div class="card kpi ${c.cls||''}">${chip(c.chip)}
+        <div class="cap">${c.cap}</div><div class="v num">${c.v}</div><div class="sub">${c.sub}</div>${c.rk||''}</div>`).join('')}
+    </div></section>`;
+}
+
+function secPendency(d){
+  const rows=AGE_BUCKETS.map((b,i)=>`<div class="row"><span class="sw" style="background:${AGE_COLORS[i]}"></span>
+     <span>${b} days</span><span class="c num">${fmt(d.age[i])}</span><span class="p num">${pct(d.age[i],d.ageTot)}%</span></div>`).join('');
+  return `<section class="sec"><div class="sechd"><span class="n">04</span><h2>Pendency Analysis</h2><div class="rule"></div></div>
+    <div class="card">${chip('live')}
+      <div class="cap">Pending applications by ageing bucket</div>
+      <div class="donutwrap">${donut(d.age,AGE_COLORS,d.ageTot)}
+        <div class="leg">${rows}</div></div></div></section>`;
+}
+
+function secProcessing(d){
+  const p=d.ptime;
+  const limitRows = d.services.map(s=>{
+    const brk = s.median>s.limit; return `<tr><td>${s.name}</td>
+      <td class="n">${s.limit}</td><td class="n">${s.median}</td>
+      <td class="n"><span class="pill ${brk?'bad':'ok'}">${brk?'+'+(s.median-s.limit):'on time'}</span></td></tr>`;}).join('');
+  return `<section class="sec"><div class="sechd"><span class="n">05</span><h2>Processing Time</h2><div class="rule"></div></div>
+   <div class="grid g2">
+     <div class="card">${chip('live')}<div class="cap">Processing time (days)</div>
+       <div class="stats">
+         <div class="s"><div class="k">Average</div><div class="v num">${p.avg}<span class="u">d</span></div></div>
+         <div class="s" style="position:relative"><div class="k">Median</div><div class="v num">${p.median}<span class="u">d</span></div>
+            <span class="chip build" style="top:8px">BUILD</span></div>
+         <div class="s"><div class="k">Minimum</div><div class="v num">${p.min}<span class="u">d</span></div></div>
+         <div class="s"><div class="k">Maximum</div><div class="v num">${p.max}<span class="u">d</span></div></div>
+       </div>
+       ${remark('build','KPI 5.b','Median processing time to be implemented (definition per NSWS mail).')}
+     </div>
+     <div class="card">${chip('build')}<div class="cap">Statutory time limit vs. actual (per service)</div>
+       <table><thead><tr><th>Service</th><th class="n">Limit (d)</th><th class="n">Median (d)</th><th class="n">Status</th></tr></thead>
+       <tbody>${limitRows}</tbody></table>
+       ${remark('build','KPI 5.c','State to provide statutory time limit per service (days/months). Requires 3 columns: S.No · Service · Time limit as per law.')}
+     </div>
+   </div></section>`;
+}
+
+function secTAT(d){
+  const svc=d.services.filter(s=>s.tat1||s.tat2);
+  const maxv=Math.max(...svc.flatMap(s=>[s.tat1||0,s.tat2||0]),1);
+  const bars=svc.map(s=>{
+    const w1=s.tat1?(s.tat1/maxv*100):0, w2=s.tat2?(s.tat2/maxv*100):0;
+    return `<div class="bar"><span class="lab">${s.name}</span>
+      <div class="track">
+        ${s.tat2?`<div class="fill t2" style="width:${w2}%"></div>`:''}
+        ${s.tat1?`<div class="fill t1" style="width:${w1}%"></div>`:''}
+      </div>
+      <span class="val">${s.tat1?s.tat1+'d':'—'} / ${s.tat2?s.tat2+'d':'—'}</span></div>`;}).join('');
+  return `<section class="sec"><div class="sechd"><span class="n">06</span><h2>End-to-end TAT</h2><div class="rule"></div></div>
+    <div class="card">${chip('spec')}<div class="cap">Turnaround time · service-wise (per BRAP)</div>
+      <div class="barkey"><span><i class="t1"></i>TAT-1 · to start Construction</span><span><i class="t2"></i>TAT-2 · to start Operations</span></div>
+      <div class="bars">${bars}</div>
+      ${remark('spec','KPI 6','Requirement not yet clear. NSWS currently caters only to pre-establishment / pre-operation approvals. State to confirm which approvals feed TAT, the calculation basis, and whether TAT is approval-specific or user-specific.')}
+    </div></section>`;
+}
+
+function secQuery(d){
+  const maxr=Math.max(...d.reasons.map(r=>r[1]));
+  const reasons=d.reasons.map(r=>`<div class="reason"><div>
+     <div class="rl">${r[0]}</div><div class="rt"><div class="rf" style="width:${r[1]/maxr*100}%"></div></div></div>
+     <div class="rc">${r[1]}%</div></div>`).join('');
+  return `<section class="sec"><div class="sechd"><span class="n">07</span><h2>Query &amp; Rejection Analytics</h2><div class="rule"></div></div>
+   <div class="grid g4">
+     <div class="card kpi accent-warn">${chip('build')}<div class="cap">Queries raised</div><div class="v num">${fmt(d.queries)}</div><div class="sub">Clarifications sought from applicants</div>
+       ${remark('build','KPI 7.a','Number of queries raised to be developed.')}</div>
+     <div class="card kpi accent-bad">${chip('live')}<div class="cap">Rejections</div><div class="v num">${fmt(d.rejections)}</div><div class="sub">Total applications rejected</div></div>
+     <div class="card" style="grid-column:span 2">${chip('spec')}<div class="cap">Common deficiencies · reasons for delay / rejection</div>
+       <div class="reasons">${reasons}</div>
+       ${remark('spec','KPI 7.c','Display approach to be finalised with TCS. State to identify the canonical list of common rejection reasons.')}</div>
+   </div></section>`;
+}
+
+function secFees(d){
+  const feeRows=d.fee.map(f=>`<tr><td>${f.dept}</td><td>${f.svc}</td><td>${f.desc}</td>
+     <td class="n">${f.fee}</td><td class="n">${f.slab}</td><td class="n">${f.total}</td></tr>`).join('');
+  return `<section class="sec"><div class="sechd"><span class="n">08</span><h2>Fee Details (from State)</h2><div class="rule"></div></div>
+   <div class="grid g2">
+     <div class="card">${chip('spec')}<div class="cap">Fee master · department / service</div>
+       <table><thead><tr><th>Dept</th><th>Service</th><th>Description</th><th class="n">Fee</th><th class="n">Slab</th><th class="n">Total</th></tr></thead>
+       <tbody>${feeRows}</tbody></table>
+       ${remark('spec','KPI 8.a','Static fees can be displayed as above. State to clarify how conditional / dynamic (slab-based) fees should render.')}</div>
+     <div class="card kpi">${chip('spec')}<div class="cap">Average fees · per approval process</div>
+       <div class="v num">₹${fmt(d.avgFee)}</div><div class="sub">Department-wise, per completed approval</div>
+       ${remark('spec','KPI 8.b','State to confirm calculation logic — average across services in a department, or across all applications received per department.')}</div>
+   </div></section>`;
+}
+
+function secReports(){
+  return `<section class="sec"><div class="sechd"><span class="n">09</span><h2>Reporting &amp; Publishing</h2><div class="rule"></div></div>
+    <div class="card">${chip('live')}<div class="cap">Periodic review &amp; report extraction</div>
+      <div class="reports">
+        <div class="fld"><label>Report</label><select><option>Approval summary</option><option>Pendency &amp; ageing</option><option>SLA / TAT compliance</option><option>Fee collection</option></select></div>
+        <div class="fld date"><label>Period</label><select><option>FY 2025–26</option><option>Q1 2026–27</option><option>Monthly</option></select></div>
+        <div class="fld"><label>Format</label><select><option>PDF</option><option>Excel (.xlsx)</option><option>CSV</option></select></div>
+        <button class="btn" onclick="alert('Prototype — report extraction wired by TCS to the NSWS reporting service.')">Extract report</button>
+      </div></div></section>`;
+}
+
+/* ---------- DPIIT league table ---------- */
+function secLeague(){
+  const rows=CODES.map(c=>{const s=STATES[c];const a=s.approvals;
+    const rate=pct(a.granted,a.applied);
+    const aged=s.age[3]+s.age[4]; const agedPct=pct(aged,s.ageTot);
+    const pillC=rate>=62?'ok':rate>=58?'warn':'bad';
+    const pillA=agedPct<=20?'ok':agedPct<=26?'warn':'bad';
+    return {c,name:s.name,applied:a.applied,rate,inprog:a.inprog,med:s.ptime.median,agedPct,pillC,pillA};})
+    .sort((x,y)=>y.applied-x.applied);
+  const body=rows.map(r=>`<tr class="row-link" onclick="drill('${r.c}')" title="Open ${r.name} — Secretary view">
+     <td><b>${r.name}</b></td>
+     <td class="n">${fmt(r.applied)}</td>
+     <td class="n"><span class="pill ${r.pillC}">${r.rate}%</span></td>
+     <td class="n">${fmt(r.inprog)}</td>
+     <td class="n">${r.med}d</td>
+     <td class="n"><span class="pill ${r.pillA}">${r.agedPct}%</span></td>
+     <td class="mini">Open ›</td></tr>`).join('');
+  return `<section class="sec"><div class="sechd"><span class="n">A</span><h2>State / UT comparison</h2><div class="rule"></div></div>
+    <div class="card">${chip('live')}<div class="cap">All States / UTs — click a row to drill into that Secretary view</div>
+     <table><thead><tr><th>State / UT</th><th class="n">Applied</th><th class="n">Approval rate</th><th class="n">In progress</th><th class="n">Median TAT</th><th class="n">Aged &gt;90d</th><th></th></tr></thead>
+     <tbody>${body}</tbody></table></div></section>`;
+}
+
+/* ============================ RENDER ============================ */
+function setScope(){
+  const sc=document.getElementById('scope');
+  if(ROLE==='dpiit'){
+    sc.innerHTML=`<b>National rollup</b><span class="sep"> · </span>All States &amp; UTs<span class="sep"> · </span>${CODES.length} jurisdictions<span class="sep"> · </span>FY 2025–26`;
+  }else{
+    const s=STATES[CUR];
+    sc.innerHTML=`<b>${s.name}</b><span class="sep"> · </span>${s.dept}<span class="sep"> · </span>All services<span class="sep"> · </span>FY 2025–26`;
+  }
+}
+function render(){
+  setScope();
+  const app=document.getElementById('app');
+  if(ROLE==='dpiit'){
+    const n=national();
+    const natD={approvals:n.agg, age:n.age, ageTot:n.ageTot,
+      ptime:{avg:41,min:5,max:210,median:37}, queries:n.q, rejections:n.rej,
+      reasons:STATES.GJ.reasons, services:STATES.MH.services,
+      fee:STATES.MH.fee, avgFee:21400};
+    app.innerHTML =
+      secLeague()+
+      secApprovals(natD)+
+      secPendency(natD)+
+      secProcessing(natD)+
+      secTAT(natD)+
+      secQuery(natD)+
+      secFees(natD)+
+      secReports()+ legendBar()+ footer();
+  }else{
+    const d=STATES[CUR];
+    app.innerHTML =
+      secApprovals(d)+
+      secPendency(d)+
+      secProcessing(d)+
+      secTAT(d)+
+      secQuery(d)+
+      secFees(d)+
+      secReports()+ legendBar()+ footer();
+  }
+}
+function legendBar(){
+  return `<div class="legendbar"><span class="lg">Build status</span>
+    <span class="item">${chip('live')} Reuse from ministry dashboard</span>
+    <span class="item">${chip('build')} New build · requirement clear</span>
+    <span class="item">${chip('spec')} Requirement not yet clear · needs State / TCS clarification</span>
+    <span style="margin-left:auto" class="lg">Source · State_Dashboard_Field_Mapping · 2 Jul 2026</span></div>`;
+}
+function footer(){
+  return `<div class="foot"><span>NSWS · Programme Management Unit — design prototype for review &amp; TCS handoff. Not production data.</span>
+    <span class="mono">v0.1 · role=${ROLE} · view=${VIEW}</span></div>`;
+}
+
+/* ============================ CONTROLS ============================ */
+function setRole(r){
+  ROLE=r;
+  document.getElementById('roleState').setAttribute('aria-pressed', r==='state');
+  document.getElementById('roleDpiit').setAttribute('aria-pressed', r==='dpiit');
+  document.getElementById('fState').disabled = (r==='dpiit');
+  render();
+}
+function setView(v){
+  VIEW=v;
+  document.body.className = v==='buildmap'?'buildmap':'official';
+  document.getElementById('viewOfficial').setAttribute('aria-pressed', v==='official');
+  document.getElementById('viewBuild').setAttribute('aria-pressed', v==='buildmap');
+}
+function onStateFilter(name){ CUR=CODE_OF[name]||CUR; if(ROLE==='state') render(); }
+function drill(code){ CUR=code; document.getElementById('fState').value=STATES[code].name; setRole('state'); window.scrollTo({top:0,behavior:'smooth'}); }
+
+/* init */
+(function(){
+  const sel=document.getElementById('fState');
+  sel.innerHTML=CODES.map(c=>`<option${c===CUR?' selected':''}>${STATES[c].name}</option>`).join('');
+  document.body.className='official';
+  render();
+})();
+</script>

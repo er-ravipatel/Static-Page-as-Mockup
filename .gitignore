@@ -1,0 +1,5 @@
+# Exclude large media and data files — only the static HTML mockup is published
+*.mp4
+*.xlsx
+*.xls
+*.zip
