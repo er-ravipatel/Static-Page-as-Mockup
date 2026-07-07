@@ -581,18 +581,18 @@ function secTAT(d){
       <div class="cap">Turnaround time · two buckets — click a bucket to drill into approval-wise TAT</div>
       <div class="buckets">
         <button class="bucket" id="bk-tat1" onclick="setTATBucket('tat1')">
-          <div class="bk-lab"><i class="dot t1"></i>TAT 1 · Consent to Establish</div>
+          <div class="bk-lab"><i class="dot t1"></i>TAT 1 · To start Construction</div>
           <div class="bk-val num">${avg1}<span class="bk-u">days</span></div>
-          <div class="bk-sub">Avg · application → CTE &nbsp;·&nbsp; click to drill ›</div>
+          <div class="bk-sub">Avg · filing → approval for construction &nbsp;·&nbsp; click to drill ›</div>
         </button>
         <button class="bucket" id="bk-tat2" onclick="setTATBucket('tat2')">
-          <div class="bk-lab"><i class="dot t2"></i>TAT 2 · Consent to Operate</div>
+          <div class="bk-lab"><i class="dot t2"></i>TAT 2 · To start Operations</div>
           <div class="bk-val num">${avg2}<span class="bk-u">days</span></div>
-          <div class="bk-sub">Avg · application → CTO &nbsp;·&nbsp; click to drill ›</div>
+          <div class="bk-sub">Avg · post-construction filing → approval for operations &nbsp;·&nbsp; click to drill ›</div>
         </button>
       </div>
       <div id="tatDrill" class="tatdrill"></div>
-      ${remark('spec','KPI 6','Two-bucket TAT — TAT-1 (application → Consent to Establish) and TAT-2 (application → Consent to Operate), drilled down approval-wise. State to confirm which approvals feed each bucket and the calculation basis.')}
+      ${remark('spec','KPI 6 · per BRAP','TAT-1 (To start Construction): from application filing to final approval for commencement of construction. TAT-2 (To start Operations): from post-construction application filing to final approval for commencement of operations. NSWS currently caters only to pre-establishment / pre-operation approvals — State to clarify which approvals feed TAT, the calculation basis, and whether TAT is approval-specific or user-specific.')}
     </div></section>`;
 }
 function renderTATDrill(){
@@ -602,7 +602,7 @@ function renderTATDrill(){
   if(b1) b1.setAttribute('aria-pressed', b==='tat1');
   if(b2) b2.setAttribute('aria-pressed', b==='tat2');
   const maxv=Math.max(...CUR_TATROWS.map(s=>s[b]),1);
-  const lab=b==='tat1'?'TAT 1 · to Consent to Establish':'TAT 2 · to Consent to Operate';
+  const lab=b==='tat1'?'TAT 1 · to start Construction':'TAT 2 · to start Operations';
   const bars=CUR_TATROWS.slice().sort((x,y)=>y[b]-x[b]).map(s=>`<div class="bar">
       <span class="lab">${s.name}</span>
       <div class="track"><div class="fill ${b==='tat1'?'t1':'t2'}" style="width:${s[b]/maxv*100}%"></div></div>
