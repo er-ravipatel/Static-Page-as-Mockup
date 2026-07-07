@@ -252,12 +252,12 @@ const SECTORS = ['Manufacturing','Chemicals & Petrochem','Textiles & Apparel','F
 
 // Dummy state approvals for the "State · Approval-wise Summary" table (placeholder names)
 const STATE_APPROVALS = [
-  {name:'Fire NOC', base:4200},
-  {name:'Gun Licence', base:1350},
-  {name:'Trade Licence', base:6800},
-  {name:'Shops & Establishment Registration', base:5200},
-  {name:'Signage / Hoarding Permit', base:2100},
-  {name:'Excise Licence', base:1750},
+  {name:'Fire NOC', base:4200, t1:30, t2:45},
+  {name:'Gun Licence', base:1350, t1:75, t2:92},
+  {name:'Trade Licence', base:6800, t1:22, t2:34},
+  {name:'Shops & Establishment Registration', base:5200, t1:18, t2:28},
+  {name:'Signage / Hoarding Permit', base:2100, t1:15, t2:24},
+  {name:'Excise Licence', base:1750, t1:45, t2:68},
 ];
 // Dummy investors + dates for the approval-wise detail (investor list) drill-through
 const INVESTORS = ['Shakti Industries Pvt Ltd','Meridian Textiles Ltd','Anand Auto Components','Sunrise Foods Pvt Ltd','Orbit Chemicals Ltd','Vayu Energy Pvt Ltd','Greenfield Agro Ltd','Deccan Steelworks','Nimbus Pharma Pvt Ltd','Crescent Packaging','Zenith Motors Ltd','Apex Logistics Pvt Ltd','Sterling Polymers','Ganga Cement Ltd','Vista Electronics Pvt Ltd'];
@@ -312,7 +312,7 @@ const CODE_OF = {}; CODES.forEach(c=>CODE_OF[STATES[c].name]=c);
 
 let ROLE='state', VIEW='official', CUR='GJ';
 let TATBUCKET='tat1';   // which TAT bucket is drilled down (tat1 = CTE, tat2 = CTO)
-let CUR_SECTORS=[];     // sectors of the currently-rendered scope (for TAT drill-down)
+let CUR_TATROWS=[];     // per-approval TAT rows of the current scope (for TAT drill-down)
 let CUR_STATE_ROWS=[];  // approval rows of the current scope (for investor-list drill-through)
 
 /* ---- national rollup ---- */
@@ -500,14 +500,18 @@ function secProcessing(d){
    </div></section>`;
 }
 
+function approvalTAT(seed){
+  return STATE_APPROVALS.map(a=>({name:a.name, tat1:a.t1+(seed%7)-3, tat2:a.t2+(seed%9)-4}));
+}
 function secTAT(d){
-  CUR_SECTORS = d.sectors || [];
-  const n = CUR_SECTORS.length || 1;
-  const avg1 = Math.round(CUR_SECTORS.reduce((a,s)=>a+s.tat1,0)/n);
-  const avg2 = Math.round(CUR_SECTORS.reduce((a,s)=>a+s.tat2,0)/n);
+  const seed = d.name ? d.name.length : 30;
+  CUR_TATROWS = approvalTAT(seed);
+  const n = CUR_TATROWS.length || 1;
+  const avg1 = Math.round(CUR_TATROWS.reduce((a,s)=>a+s.tat1,0)/n);
+  const avg2 = Math.round(CUR_TATROWS.reduce((a,s)=>a+s.tat2,0)/n);
   return `<section class="sec"><div class="sechd"><span class="n">06</span><h2>End-to-end TAT</h2><div class="rule"></div></div>
     <div class="card">${chip('spec')}
-      <div class="cap">Turnaround time · two buckets — click a bucket to drill into sector-wise TAT</div>
+      <div class="cap">Turnaround time · two buckets — click a bucket to drill into approval-wise TAT</div>
       <div class="buckets">
         <button class="bucket" id="bk-tat1" onclick="setTATBucket('tat1')">
           <div class="bk-lab"><i class="dot t1"></i>TAT 1 · Consent to Establish</div>
@@ -521,7 +525,7 @@ function secTAT(d){
         </button>
       </div>
       <div id="tatDrill" class="tatdrill"></div>
-      ${remark('spec','KPI 6','Two-bucket TAT — TAT-1 (application → Consent to Establish) and TAT-2 (application → Consent to Operate), drilled down sector-wise. State to confirm which approvals feed each bucket and the calculation basis.')}
+      ${remark('spec','KPI 6','Two-bucket TAT — TAT-1 (application → Consent to Establish) and TAT-2 (application → Consent to Operate), drilled down approval-wise. State to confirm which approvals feed each bucket and the calculation basis.')}
     </div></section>`;
 }
 function renderTATDrill(){
@@ -530,13 +534,13 @@ function renderTATDrill(){
   const b1=document.getElementById('bk-tat1'), b2=document.getElementById('bk-tat2');
   if(b1) b1.setAttribute('aria-pressed', b==='tat1');
   if(b2) b2.setAttribute('aria-pressed', b==='tat2');
-  const maxv=Math.max(...CUR_SECTORS.map(s=>s[b]),1);
+  const maxv=Math.max(...CUR_TATROWS.map(s=>s[b]),1);
   const lab=b==='tat1'?'TAT 1 · to Consent to Establish':'TAT 2 · to Consent to Operate';
-  const bars=CUR_SECTORS.slice().sort((x,y)=>y[b]-x[b]).map(s=>`<div class="bar">
+  const bars=CUR_TATROWS.slice().sort((x,y)=>y[b]-x[b]).map(s=>`<div class="bar">
       <span class="lab">${s.name}</span>
       <div class="track"><div class="fill ${b==='tat1'?'t1':'t2'}" style="width:${s[b]/maxv*100}%"></div></div>
       <span class="val">${s[b]}d</span></div>`).join('');
-  host.innerHTML=`<div class="drillhd">Sector-wise · <b>${lab}</b></div><div class="bars">${bars}</div>`;
+  host.innerHTML=`<div class="drillhd">Approval-wise · <b>${lab}</b></div><div class="bars">${bars}</div>`;
 }
 function setTATBucket(b){ TATBUCKET=b; renderTATDrill(); }
 
