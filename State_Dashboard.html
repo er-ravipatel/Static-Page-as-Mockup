@@ -37,7 +37,11 @@ button{font-family:inherit;cursor:pointer}
 .ctx .scope{font-family:var(--mono);font-size:12.5px;color:#eceef1;letter-spacing:.01em}
 .ctx .scope b{color:#fff}
 .ctx .sep{color:#5a5d64}
-.ctx .updated{margin-left:auto;font-size:11px;color:#9a9da3;letter-spacing:.04em}
+.ctx .updated{margin-left:auto;font-size:11px;color:#9a9da3;letter-spacing:.04em;display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ctx .updated .sep2{color:#5a5d78}
+.syncbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid #39407e;border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:600;letter-spacing:.05em;color:#d4d7e6}
+.syncbadge .dot{width:7px;height:7px;border-radius:50%;background:#3fbf7f;animation:syncpulse 2.4s ease-out infinite}
+@keyframes syncpulse{0%{box-shadow:0 0 0 0 rgba(63,191,127,.55)}70%{box-shadow:0 0 0 6px rgba(63,191,127,0)}100%{box-shadow:0 0 0 0 rgba(63,191,127,0)}}
 
 /* ---------- Filters ---------- */
 .filters{border-bottom:1px solid var(--line);background:#fbfbfa}
@@ -108,8 +112,23 @@ body.official .remark{display:none}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:9px 10px;border-bottom:1px solid var(--line2)}
-tr:last-child td{border-bottom:0}
+tbody tr:last-child td{border-bottom:0}
 td.n,th.n{text-align:right;font-family:var(--mono)}
+tfoot td{font-weight:700;color:var(--ink);border-top:2px solid var(--line);border-bottom:0;padding-top:11px}
+tfoot td.n{font-family:var(--mono)}
+
+/* State table → investor-list drill-through */
+.statetbl tbody tr.sel td{background:#eef0fb}
+.statetbl .det{color:var(--gold);font-weight:600;text-align:right;white-space:nowrap}
+.apprdetail:empty{display:none}
+.detailcard{margin-top:14px;border:1px solid var(--line);border-radius:9px;padding:14px 16px;background:#fbfbfe}
+.detailhd{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--slate);margin-bottom:10px;flex-wrap:wrap}
+.detailhd b{color:var(--ink)}
+.detailclose{margin-left:auto;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--muted)}
+.detailclose:hover{border-color:var(--ink);color:var(--ink)}
+.invtbl{margin-top:2px}
+.complink{color:var(--ink);text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-weight:500}
+.complink:hover{color:var(--gold)}
 .pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
 .pill.ok{background:var(--okbg);color:var(--ok)} .pill.warn{background:var(--warnbg);color:var(--warn)} .pill.bad{background:var(--badbg);color:var(--bad)}
 .row-link{cursor:pointer} .row-link:hover td{background:#f7f7f5}
@@ -124,6 +143,8 @@ td.n,th.n{text-align:right;font-family:var(--mono)}
 .bar .fill.t1{background:var(--ink)} .bar .fill.t2{background:var(--gold)}
 .bar .lim{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--bad)}
 .bar .val{font-family:var(--mono);font-size:12.5px;text-align:right}
+.bars.pend .bar{grid-template-columns:150px 1fr 52px;gap:10px}
+.bars.pend .bar .lab{font-size:12px}
 .barkey{display:flex;gap:16px;font-size:11px;color:var(--muted);margin:2px 0 14px 192px}
 .barkey span{display:inline-flex;align-items:center;gap:6px}
 .barkey i{width:12px;height:8px;border-radius:2px;display:inline-block}
@@ -192,7 +213,11 @@ body.buildmap .legendbar{display:flex}
 <div class="ctx">
   <div class="wrap">
     <div class="scope" id="scope"></div>
-    <div class="updated">Data as of <span class="num">02 Jul 2026, 18:00 IST</span> · Prototype — mock data</div>
+    <div class="updated">
+      <span class="syncbadge" title="Dashboard data is refreshed automatically once every 24 hours"><i class="dot"></i>Auto-sync · 24 h cycle</span>
+      <span class="sep2">·</span> Last synced <span class="num">07 Jul 2026, 06:00 IST</span>
+      <span class="sep2">·</span> Next <span class="num">08 Jul, 06:00 IST</span>
+    </div>
   </div>
 </div>
 
@@ -224,6 +249,19 @@ const STAT_LIMIT = {'Consent to Establish':60,'Consent to Operate':60,'Building 
 
 // Industry sectors — TAT is drilled down sector-wise (per meeting notes)
 const SECTORS = ['Manufacturing','Chemicals & Petrochem','Textiles & Apparel','Food Processing','Pharmaceuticals','Infrastructure'];
+
+// Dummy state approvals for the "State · Approval-wise Summary" table (placeholder names)
+const STATE_APPROVALS = [
+  {name:'Fire NOC', base:4200},
+  {name:'Gun Licence', base:1350},
+  {name:'Trade Licence', base:6800},
+  {name:'Shops & Establishment Registration', base:5200},
+  {name:'Signage / Hoarding Permit', base:2100},
+  {name:'Excise Licence', base:1750},
+];
+// Dummy investors + dates for the approval-wise detail (investor list) drill-through
+const INVESTORS = ['Shakti Industries Pvt Ltd','Meridian Textiles Ltd','Anand Auto Components','Sunrise Foods Pvt Ltd','Orbit Chemicals Ltd','Vayu Energy Pvt Ltd','Greenfield Agro Ltd','Deccan Steelworks','Nimbus Pharma Pvt Ltd','Crescent Packaging','Zenith Motors Ltd','Apex Logistics Pvt Ltd','Sterling Polymers','Ganga Cement Ltd','Vista Electronics Pvt Ltd'];
+const DDATES = ['12 Apr 2026','28 Apr 2026','03 May 2026','19 May 2026','07 Jun 2026','21 Jun 2026','02 Jul 2026','06 Jul 2026'];
 
 function mkState(name, dept, base){
   const applied = base;
@@ -275,6 +313,7 @@ const CODE_OF = {}; CODES.forEach(c=>CODE_OF[STATES[c].name]=c);
 let ROLE='state', VIEW='official', CUR='GJ';
 let TATBUCKET='tat1';   // which TAT bucket is drilled down (tat1 = CTE, tat2 = CTO)
 let CUR_SECTORS=[];     // sectors of the currently-rendered scope (for TAT drill-down)
+let CUR_STATE_ROWS=[];  // approval rows of the current scope (for investor-list drill-through)
 
 /* ---- national rollup ---- */
 function national(){
@@ -333,14 +372,108 @@ function secApprovals(d){
     </div></section>`;
 }
 
+// Distribute a scope's real totals across the dummy approvals (weighted by base),
+// reconciling the last row so each column sums exactly to the Approval Summary KPI.
+function approvalBreakdown(tot){
+  const W=STATE_APPROVALS.map(a=>a.base), sumW=W.reduce((x,y)=>x+y,0), last=W.length-1;
+  const dist=total=>{const arr=W.map((w,i)=> i<last ? Math.round(total*w/sumW) : 0);
+    arr[last]=total-arr.slice(0,last).reduce((x,y)=>x+y,0); return arr;};
+  const ap=dist(tot.applied), gr=dist(tot.granted), rj=dist(tot.rejected);
+  return STATE_APPROVALS.map((a,i)=>({name:a.name, applied:ap[i], granted:gr[i], rejected:rj[i], pending:ap[i]-gr[i]-rj[i]}));
+}
+function secStateTable(scopeName, tot){
+  const data=approvalBreakdown(tot);
+  CUR_STATE_ROWS=data;
+  let tA=0,tG=0,tR=0,tP=0;
+  const rows=data.map((row,i)=>{
+    tA+=row.applied; tG+=row.granted; tR+=row.rejected; tP+=row.pending;
+    return `<tr class="row-link" onclick="openDetail(${i})" title="View investors who applied for ${row.name}">
+      <td>${row.name}</td>
+      <td class="n">${fmt(row.applied)}</td>
+      <td class="n">${fmt(row.granted)}</td>
+      <td class="n">${fmt(row.rejected)}</td>
+      <td class="n">${fmt(row.pending)}</td>
+      <td class="det">View ›</td></tr>`;}).join('');
+  return `<section class="sec"><div class="sechd"><span class="n">02</span><h2>State · Approval-wise Summary</h2><div class="rule"></div></div>
+    <div class="card">${chip('live')}
+      <div class="cap">${scopeName} — approval-wise · applied / granted / rejected / pending &nbsp;·&nbsp; click a row for investor details</div>
+      <table class="statetbl"><thead><tr><th>Approval</th><th class="n">Applied</th><th class="n">Granted</th><th class="n">Rejected</th><th class="n">Pending</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td class="n">${fmt(tA)}</td><td class="n">${fmt(tG)}</td><td class="n">${fmt(tR)}</td><td class="n">${fmt(tP)}</td><td></td></tr></tfoot>
+      </table>
+      <div id="apprDetail" class="apprdetail"></div>
+    </div></section>`;
+}
+function apprAbbr(name){ return name.split(/[^A-Za-z]+/).filter(Boolean).map(w=>w[0]).join('').toUpperCase().slice(0,4); }
+function openDetail(i){
+  const host=document.getElementById('apprDetail'); if(!host) return;
+  const row=CUR_STATE_ROWS[i]; if(!row) return;
+  document.querySelectorAll('.statetbl tbody tr').forEach((tr,idx)=>tr.classList.toggle('sel',idx===i));
+  const N=8;   // sample of applicants shown
+  let g=Math.round(N*row.granted/row.applied), r=Math.round(N*row.rejected/row.applied);
+  if(g+r>N) r=Math.max(0,N-g);
+  let p=N-g-r; if(p<0) p=0;
+  const statuses=[...Array(g).fill('Granted'),...Array(r).fill('Rejected'),...Array(p).fill('Pending')];
+  const abbr=apprAbbr(row.name);
+  const items=statuses.map((st,k)=>{
+    const inv=(i*3+k)%INVESTORS.length;
+    const name=INVESTORS[inv];
+    const id=`NSWS/${abbr}/26/${String(1001+i*20+k)}`;
+    const date=DDATES[(i+k)%DDATES.length];
+    const cls=st==='Granted'?'ok':st==='Rejected'?'bad':'warn';
+    return `<tr><td class="num">${id}</td><td><a class="complink" onclick="openCompany(${inv},${i})">${name}</a></td><td>${date}</td><td><span class="pill ${cls}">${st.toLowerCase()}</span></td></tr>`;
+  }).join('');
+  host.innerHTML=`<div class="detailcard">
+    <div class="detailhd"><b>${row.name}</b> · investors / applicants <span class="mini">showing ${N} of ${fmt(row.applied)}</span>
+      <button class="detailclose" onclick="closeDetail()">Close ✕</button></div>
+    <table class="invtbl"><thead><tr><th>Application ID</th><th>Investor / Company</th><th>Applied on</th><th>Status</th></tr></thead>
+      <tbody>${items}</tbody></table></div>`;
+}
+function closeDetail(){ const h=document.getElementById('apprDetail'); if(h) h.innerHTML=''; document.querySelectorAll('.statetbl tbody tr').forEach(tr=>tr.classList.remove('sel')); }
+function statusOf(n){ return ['Granted','Pending','Rejected','Granted'][n%4]; }
+function openCompany(inv, fromIdx){
+  const host=document.getElementById('apprDetail'); if(!host) return;
+  const company=INVESTORS[inv];
+  let tot=0;
+  const rows=STATE_APPROVALS.map((a,i)=>{
+    if((inv+i)%3===0) return '';                 // this company didn't apply for this approval
+    const st=statusOf(inv+i);
+    const date=DDATES[(inv+i)%DDATES.length];
+    const pend= st==='Pending' ? ((inv+i)*7%90)+5 : null;
+    const cls=st==='Granted'?'ok':st==='Rejected'?'bad':'warn';
+    tot++;
+    return `<tr><td>${a.name}</td><td>${date}</td><td><span class="pill ${cls}">${st.toLowerCase()}</span></td><td class="n">${pend!=null?pend+'d':'—'}</td></tr>`;
+  }).filter(Boolean).join('');
+  const backName = (fromIdx!=null && CUR_STATE_ROWS[fromIdx]) ? CUR_STATE_ROWS[fromIdx].name : null;
+  const back = backName!=null
+    ? `<button class="detailclose" onclick="openDetail(${fromIdx})">‹ Back to ${backName} applicants</button>`
+    : `<button class="detailclose" onclick="closeDetail()">Close ✕</button>`;
+  host.innerHTML=`<div class="detailcard">
+    <div class="detailhd"><b>${company}</b> · approvals applied <span class="mini">${tot} approval${tot!==1?'s':''}</span>
+      ${back}</div>
+    <table class="invtbl"><thead><tr><th>Approval</th><th>Applied on</th><th>Status</th><th class="n">Pending days</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+}
+
 function secPendency(d){
   const rows=AGE_BUCKETS.map((b,i)=>`<div class="row"><span class="sw" style="background:${AGE_COLORS[i]}"></span>
      <span>${b} days</span><span class="c num">${fmt(d.age[i])}</span><span class="p num">${pct(d.age[i],d.ageTot)}%</span></div>`).join('');
+  const brk=approvalBreakdown(d.approvals);
+  const maxp=Math.max(...brk.map(x=>x.pending),1);
+  const pbars=brk.slice().sort((a,b)=>b.pending-a.pending).map(x=>`<div class="bar">
+     <span class="lab">${x.name}</span>
+     <div class="track"><div class="fill t1" style="width:${x.pending/maxp*100}%"></div></div>
+     <span class="val">${fmt(x.pending)}</span></div>`).join('');
   return `<section class="sec"><div class="sechd"><span class="n">04</span><h2>Pendency Analysis</h2><div class="rule"></div></div>
+   <div class="grid g2">
     <div class="card">${chip('live')}
       <div class="cap">Pending applications by ageing bucket</div>
       <div class="donutwrap">${donut(d.age,AGE_COLORS,d.ageTot)}
-        <div class="leg">${rows}</div></div></div></section>`;
+        <div class="leg">${rows}</div></div></div>
+    <div class="card">${chip('live')}
+      <div class="cap">Pending applications by approval</div>
+      <div class="bars pend">${pbars}</div></div>
+   </div></section>`;
 }
 
 function secProcessing(d){
@@ -494,6 +627,7 @@ function render(){
     app.innerHTML =
       secLeague()+
       secApprovals(natD)+
+      secStateTable('All States &amp; UTs', n.agg)+
       secPendency(natD)+
       secProcessing(natD)+
       secTAT(natD)+
@@ -504,6 +638,7 @@ function render(){
     const d=STATES[CUR];
     app.innerHTML =
       secApprovals(d)+
+      secStateTable(d.name, d.approvals)+
       secPendency(d)+
       secProcessing(d)+
       secTAT(d)+
