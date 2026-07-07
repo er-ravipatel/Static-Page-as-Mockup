@@ -217,7 +217,7 @@ function mkState(name, dept, base){
     const a = Math.round(base*[0.26,0.14,0.24,0.16,0.12,0.08][i]);
     const med = [52,48,26,41,24,19][i] + (name.length%5) - 2;
     return {name:s, applied:a, granted:Math.round(a*0.66), rejected:Math.round(a*0.10),
-      queries:Math.round(a*0.30), median:med, avg:med+4, limit:STAT_LIMIT[s],
+      queries:Math.round(a*0.30), median:med, avg:med+4, max:Math.round(med*2.6)+i*4, limit:STAT_LIMIT[s],
       tat1:[210,null,150,175,90,null][i], tat2:[365,290,null,240,null,null][i]};
   });
   return {name,dept,
@@ -317,7 +317,7 @@ function secPendency(d){
 function secProcessing(d){
   const p=d.ptime;
   const limitRows = d.services.map(s=>`<tr><td>${s.name}</td>
-      <td class="n">${s.limit}</td><td class="n">${s.avg}</td></tr>`).join('');
+      <td class="n">${s.limit}</td><td class="n">${s.avg}</td><td class="n">${s.max}</td></tr>`).join('');
   return `<section class="sec"><div class="sechd"><span class="n">05</span><h2>Processing Time</h2><div class="rule"></div></div>
    <div class="grid g2">
      <div class="card">${chip('live')}<div class="cap">Processing time (days)</div>
@@ -331,7 +331,7 @@ function secProcessing(d){
        ${remark('build','KPI 5.b','Median processing time to be implemented (definition per NSWS mail).')}
      </div>
      <div class="card">${chip('build')}<div class="cap">Statutory time limit vs. actual (per service)</div>
-       <table><thead><tr><th>Service</th><th class="n">Limit (d)</th><th class="n">Average (d)</th></tr></thead>
+       <table><thead><tr><th>Service</th><th class="n">Limit (d)</th><th class="n">Average (d)</th><th class="n">Max (d)</th></tr></thead>
        <tbody>${limitRows}</tbody></table>
        ${remark('build','KPI 5.c','State to provide statutory time limit per service (days/months). Requires 3 columns: S.No · Service · Time limit as per law.')}
      </div>
