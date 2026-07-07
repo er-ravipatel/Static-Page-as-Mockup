@@ -129,6 +129,23 @@ td.n,th.n{text-align:right;font-family:var(--mono)}
 .barkey i{width:12px;height:8px;border-radius:2px;display:inline-block}
 .barkey i.t1{background:var(--ink)} .barkey i.t2{background:var(--gold)} .barkey i.lim{background:var(--bad);width:2px;height:12px}
 
+/* TAT two-bucket + drill-down */
+.buckets{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 18px}
+@media(max-width:560px){.buckets{grid-template-columns:1fr}}
+.bucket{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:14px 16px;transition:border-color .15s,box-shadow .15s;box-shadow:0 1px 2px rgba(20,26,77,.05)}
+.bucket:hover{border-color:var(--gold)}
+.bucket[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px rgba(20,26,77,.14)}
+.bucket .bk-lab{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--slate)}
+.bucket[aria-pressed="true"] .bk-lab{color:var(--ink)}
+.bucket .bk-lab .dot{width:9px;height:9px;border-radius:3px}
+.bucket .bk-lab .dot.t1{background:var(--ink)} .bucket .bk-lab .dot.t2{background:var(--gold)}
+.bucket .bk-val{font-family:var(--mono);font-size:27px;font-weight:600;color:var(--ink);margin-top:7px;line-height:1}
+.bucket .bk-u{font-size:12px;font-family:var(--sans);color:var(--muted);margin-left:5px}
+.bucket .bk-sub{font-size:11px;color:var(--faint);margin-top:7px}
+.tatdrill{margin-top:2px}
+.drillhd{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.drillhd b{color:var(--ink)}
+
 /* reasons */
 .reasons{display:flex;flex-direction:column;gap:9px}
 .reason{display:grid;grid-template-columns:1fr 52px;gap:10px;align-items:center}
@@ -205,6 +222,9 @@ const SERVICES = ['Consent to Establish','Consent to Operate','Building Plan App
 // statutory time limit (days) per service — field 5.c
 const STAT_LIMIT = {'Consent to Establish':60,'Consent to Operate':60,'Building Plan Approval':30,'Factory License':45,'Fire NOC':30,'Trade License':30};
 
+// Industry sectors — TAT is drilled down sector-wise (per meeting notes)
+const SECTORS = ['Manufacturing','Chemicals & Petrochem','Textiles & Apparel','Food Processing','Pharmaceuticals','Infrastructure'];
+
 function mkState(name, dept, base){
   const applied = base;
   const granted = Math.round(base*0.62);
@@ -223,6 +243,10 @@ function mkState(name, dept, base){
   return {name,dept,
     approvals:{applied,granted,rejected,inprog},
     age, ageTot,
+    sectors: SECTORS.map((sn,i)=>({name:sn,
+      tat1:[95,120,80,72,110,138][i] + (name.length%7) - 3,   // application → Consent to Establish
+      tat2:[210,262,176,158,242,300][i] + (name.length%9) - 4  // application → Consent to Operate
+    })),
     ptime:{avg:38+(name.length%6), min:6, max:186-(name.length%9), median:34+(name.length%5)},
     queries: Math.round(base*0.28), rejections: rejected,
     reasons:[['Incomplete / illegible documents',34],['Fee not paid / mismatch',22],['Site details inconsistent',18],['NOC from allied dept pending',15],['Application in wrong service',11]],
@@ -249,6 +273,8 @@ const CODES = Object.keys(STATES);
 const CODE_OF = {}; CODES.forEach(c=>CODE_OF[STATES[c].name]=c);
 
 let ROLE='state', VIEW='official', CUR='GJ';
+let TATBUCKET='tat1';   // which TAT bucket is drilled down (tat1 = CTE, tat2 = CTO)
+let CUR_SECTORS=[];     // sectors of the currently-rendered scope (for TAT drill-down)
 
 /* ---- national rollup ---- */
 function national(){
@@ -258,7 +284,10 @@ function national(){
     agg.applied+=s.approvals.applied; agg.granted+=s.approvals.granted;
     agg.rejected+=s.approvals.rejected; agg.inprog+=s.approvals.inprog;
     s.age.forEach((v,i)=>age[i]+=v); q+=s.queries; rej+=s.rejections;});
-  return {agg,age,ageTot:age.reduce((a,b)=>a+b,0),q,rej};
+  const sectors=SECTORS.map((name,i)=>{
+    let t1=0,t2=0; CODES.forEach(c=>{t1+=STATES[c].sectors[i].tat1; t2+=STATES[c].sectors[i].tat2;});
+    return {name, tat1:Math.round(t1/CODES.length), tat2:Math.round(t2/CODES.length)};});
+  return {agg,age,ageTot:age.reduce((a,b)=>a+b,0),q,rej,sectors};
 }
 
 /* ============================ HELPERS ============================ */
@@ -339,23 +368,44 @@ function secProcessing(d){
 }
 
 function secTAT(d){
-  const svc=d.services.filter(s=>s.tat1||s.tat2);
-  const maxv=Math.max(...svc.flatMap(s=>[s.tat1||0,s.tat2||0]),1);
-  const bars=svc.map(s=>{
-    const w1=s.tat1?(s.tat1/maxv*100):0, w2=s.tat2?(s.tat2/maxv*100):0;
-    return `<div class="bar"><span class="lab">${s.name}</span>
-      <div class="track">
-        ${s.tat2?`<div class="fill t2" style="width:${w2}%"></div>`:''}
-        ${s.tat1?`<div class="fill t1" style="width:${w1}%"></div>`:''}
-      </div>
-      <span class="val">${s.tat1?s.tat1+'d':'—'} / ${s.tat2?s.tat2+'d':'—'}</span></div>`;}).join('');
+  CUR_SECTORS = d.sectors || [];
+  const n = CUR_SECTORS.length || 1;
+  const avg1 = Math.round(CUR_SECTORS.reduce((a,s)=>a+s.tat1,0)/n);
+  const avg2 = Math.round(CUR_SECTORS.reduce((a,s)=>a+s.tat2,0)/n);
   return `<section class="sec"><div class="sechd"><span class="n">06</span><h2>End-to-end TAT</h2><div class="rule"></div></div>
-    <div class="card">${chip('spec')}<div class="cap">Turnaround time · service-wise (per BRAP)</div>
-      <div class="barkey"><span><i class="t1"></i>TAT-1 · to start Construction</span><span><i class="t2"></i>TAT-2 · to start Operations</span></div>
-      <div class="bars">${bars}</div>
-      ${remark('spec','KPI 6','Requirement not yet clear. NSWS currently caters only to pre-establishment / pre-operation approvals. State to confirm which approvals feed TAT, the calculation basis, and whether TAT is approval-specific or user-specific.')}
+    <div class="card">${chip('spec')}
+      <div class="cap">Turnaround time · two buckets — click a bucket to drill into sector-wise TAT</div>
+      <div class="buckets">
+        <button class="bucket" id="bk-tat1" onclick="setTATBucket('tat1')">
+          <div class="bk-lab"><i class="dot t1"></i>TAT 1 · Consent to Establish</div>
+          <div class="bk-val num">${avg1}<span class="bk-u">days</span></div>
+          <div class="bk-sub">Avg · application → CTE &nbsp;·&nbsp; click to drill ›</div>
+        </button>
+        <button class="bucket" id="bk-tat2" onclick="setTATBucket('tat2')">
+          <div class="bk-lab"><i class="dot t2"></i>TAT 2 · Consent to Operate</div>
+          <div class="bk-val num">${avg2}<span class="bk-u">days</span></div>
+          <div class="bk-sub">Avg · application → CTO &nbsp;·&nbsp; click to drill ›</div>
+        </button>
+      </div>
+      <div id="tatDrill" class="tatdrill"></div>
+      ${remark('spec','KPI 6','Two-bucket TAT — TAT-1 (application → Consent to Establish) and TAT-2 (application → Consent to Operate), drilled down sector-wise. State to confirm which approvals feed each bucket and the calculation basis.')}
     </div></section>`;
 }
+function renderTATDrill(){
+  const host=document.getElementById('tatDrill'); if(!host) return;
+  const b=TATBUCKET;
+  const b1=document.getElementById('bk-tat1'), b2=document.getElementById('bk-tat2');
+  if(b1) b1.setAttribute('aria-pressed', b==='tat1');
+  if(b2) b2.setAttribute('aria-pressed', b==='tat2');
+  const maxv=Math.max(...CUR_SECTORS.map(s=>s[b]),1);
+  const lab=b==='tat1'?'TAT 1 · to Consent to Establish':'TAT 2 · to Consent to Operate';
+  const bars=CUR_SECTORS.slice().sort((x,y)=>y[b]-x[b]).map(s=>`<div class="bar">
+      <span class="lab">${s.name}</span>
+      <div class="track"><div class="fill ${b==='tat1'?'t1':'t2'}" style="width:${s[b]/maxv*100}%"></div></div>
+      <span class="val">${s[b]}d</span></div>`).join('');
+  host.innerHTML=`<div class="drillhd">Sector-wise · <b>${lab}</b></div><div class="bars">${bars}</div>`;
+}
+function setTATBucket(b){ TATBUCKET=b; renderTATDrill(); }
 
 function secQuery(d){
   const maxr=Math.max(...d.reasons.map(r=>r[1]));
@@ -439,7 +489,7 @@ function render(){
     const n=national();
     const natD={approvals:n.agg, age:n.age, ageTot:n.ageTot,
       ptime:{avg:41,min:5,max:210,median:37}, queries:n.q, rejections:n.rej,
-      reasons:STATES.GJ.reasons, services:STATES.MH.services,
+      reasons:STATES.GJ.reasons, services:STATES.MH.services, sectors:n.sectors,
       fee:STATES.MH.fee, avgFee:21400};
     app.innerHTML =
       secLeague()+
@@ -461,6 +511,7 @@ function render(){
       secFees(d)+
       secReports()+ legendBar()+ footer();
   }
+  renderTATDrill();
 }
 function legendBar(){
   return `<div class="legendbar"><span class="lg">Build status</span>
