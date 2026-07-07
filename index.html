@@ -145,6 +145,17 @@ tfoot td.n{font-family:var(--mono)}
 .bar .val{font-family:var(--mono);font-size:12.5px;text-align:right}
 .bars.pend .bar{grid-template-columns:150px 1fr 52px;gap:10px}
 .bars.pend .bar .lab{font-size:12px}
+.track.stack{display:flex;background:var(--line2)}
+.track.stack .seg{height:100%}
+.agelegend{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin:0 0 12px}
+.agelegend span{display:inline-flex;align-items:center;gap:5px}
+.agelegend i{width:10px;height:8px;border-radius:2px;display:inline-block}
+.mxwrap{overflow-x:auto}
+.matrix{min-width:560px}
+.matrix td.n,.matrix th.n{min-width:50px}
+.matrix tbody td{border-bottom:1px solid var(--line2)}
+.matrix td.cell{cursor:pointer}
+.matrix td.cell:hover{outline:2px solid var(--ink);outline-offset:-2px}
 .barkey{display:flex;gap:16px;font-size:11px;color:var(--muted);margin:2px 0 14px 192px}
 .barkey span{display:inline-flex;align-items:center;gap:6px}
 .barkey i{width:12px;height:8px;border-radius:2px;display:inline-block}
@@ -314,6 +325,7 @@ let ROLE='state', VIEW='official', CUR='GJ';
 let TATBUCKET='tat1';   // which TAT bucket is drilled down (tat1 = CTE, tat2 = CTO)
 let CUR_TATROWS=[];     // per-approval TAT rows of the current scope (for TAT drill-down)
 let CUR_STATE_ROWS=[];  // approval rows of the current scope (for investor-list drill-through)
+let CUR_PMATRIX=null;   // pending approval×age matrix of the current scope (for cell drill-through)
 
 /* ---- national rollup ---- */
 function national(){
@@ -430,6 +442,27 @@ function openDetail(i){
       <tbody>${items}</tbody></table></div>`;
 }
 function closeDetail(){ const h=document.getElementById('apprDetail'); if(h) h.innerHTML=''; document.querySelectorAll('.statetbl tbody tr').forEach(tr=>tr.classList.remove('sel')); }
+function openCell(i,j){
+  const host=document.getElementById('cellDetail'); if(!host) return;
+  const pm=CUR_PMATRIX; if(!pm) return;
+  const count=pm.M[i][j], name=pm.names[i], bucket=AGE_BUCKETS[j], abbr=apprAbbr(name);
+  const low=[0,30,60,90,120][j];
+  const N=Math.min(8,count);
+  const items=Array.from({length:N},(_,k)=>{
+    const nm=INVESTORS[(i*3+j*2+k)%INVESTORS.length];
+    const id=`NSWS/${abbr}/26/${String(2001+i*30+j*7+k)}`;
+    const date=DDATES[(i+j+k)%DDATES.length];
+    const pd = j<4 ? low + ((k*7+i)%30) : 120 + ((k*11+i)%60);
+    return `<tr><td class="num">${id}</td><td>${nm}</td><td>${date}</td><td class="n">${pd}d</td></tr>`;
+  }).join('');
+  host.innerHTML=`<div class="detailcard">
+    <div class="detailhd"><b>${name}</b> · pending <b>${bucket} days</b> <span class="mini">showing ${N} of ${fmt(count)}</span>
+      <button class="detailclose" onclick="closeCell()">Close ✕</button></div>
+    <table class="invtbl"><thead><tr><th>Application ID</th><th>Investor / Company</th><th>Applied on</th><th class="n">Pending days</th></tr></thead>
+      <tbody>${items}</tbody></table></div>`;
+  host.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeCell(){ const h=document.getElementById('cellDetail'); if(h) h.innerHTML=''; }
 function statusOf(n){ return ['Granted','Pending','Rejected','Granted'][n%4]; }
 function openCompany(inv, fromIdx){
   const host=document.getElementById('apprDetail'); if(!host) return;
@@ -455,24 +488,58 @@ function openCompany(inv, fromIdx){
       <tbody>${rows}</tbody></table></div>`;
 }
 
-function secPendency(d){
-  const rows=AGE_BUCKETS.map((b,i)=>`<div class="row"><span class="sw" style="background:${AGE_COLORS[i]}"></span>
-     <span>${b} days</span><span class="c num">${fmt(d.age[i])}</span><span class="p num">${pct(d.age[i],d.ageTot)}%</span></div>`).join('');
+function hexA(h,a){const n=parseInt(h.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+// Build the approval × age-bucket pending matrix.
+// Rows sum exactly to each approval's pending; columns sum to the ageing totals used by the donut.
+function pendingMatrix(d){
   const brk=approvalBreakdown(d.approvals);
-  const maxp=Math.max(...brk.map(x=>x.pending),1);
-  const pbars=brk.slice().sort((a,b)=>b.pending-a.pending).map(x=>`<div class="bar">
-     <span class="lab">${x.name}</span>
-     <div class="track"><div class="fill t1" style="width:${x.pending/maxp*100}%"></div></div>
-     <span class="val">${fmt(x.pending)}</span></div>`).join('');
+  const R=brk.map(x=>x.pending);
+  const T=d.ageTot || R.reduce((a,b)=>a+b,0) || 1;
+  const p=d.age.map(v=>v/(d.ageTot||1)), last=d.age.length-1;
+  const M=R.map(r=>{
+    const row=p.map((pj,j)=> j<last ? Math.round(r*pj) : 0);
+    row[last]=r - row.slice(0,last).reduce((a,b)=>a+b,0);
+    return row;
+  });
+  const colT=d.age.map((_,j)=>M.reduce((a,row)=>a+row[j],0));
+  return {names:brk.map(x=>x.name), R, M, colT, T};
+}
+function secPendency(d){
+  const pm=pendingMatrix(d);
+  CUR_PMATRIX=pm;
+  const order=pm.names.map((_,i)=>i).sort((a,b)=>pm.R[b]-pm.R[a]);
+  // Card 1 — ageing donut (uses the matrix column totals so it ties to the grid)
+  const legrows=AGE_BUCKETS.map((b,i)=>`<div class="row"><span class="sw" style="background:${AGE_COLORS[i]}"></span>
+     <span>${b} days</span><span class="c num">${fmt(pm.colT[i])}</span><span class="p num">${pct(pm.colT[i],pm.T)}%</span></div>`).join('');
+  // Card 2 — stacked bars, one per approval, split by age bucket
+  const maxRow=Math.max(...pm.R,1);
+  const stbars=order.map(i=>{
+    const segs=pm.M[i].map((v,j)=>`<div class="seg" style="width:${v/maxRow*100}%;background:${AGE_COLORS[j]}" title="${AGE_BUCKETS[j]} days: ${fmt(v)}"></div>`).join('');
+    return `<div class="bar stk"><span class="lab">${pm.names[i]}</span>
+       <div class="track stack">${segs}</div><span class="val">${fmt(pm.R[i])}</span></div>`;}).join('');
+  const agelegend=AGE_BUCKETS.map((b,i)=>`<span><i style="background:${AGE_COLORS[i]}"></i>${b}d</span>`).join('');
+  // Card 3 — heatmap matrix with exact counts
+  const maxCell=Math.max(...pm.M.flat(),1);
+  const head=AGE_BUCKETS.map(b=>`<th class="n">${b}d</th>`).join('');
+  const mrows=order.map(i=>{
+    const cells=pm.M[i].map((v,j)=>`<td class="n cell" onclick="openCell(${i},${j})" title="${pm.names[i]} · ${AGE_BUCKETS[j]} days — view applications" style="background:${hexA(AGE_COLORS[j],0.10+0.5*v/maxCell)}">${fmt(v)}</td>`).join('');
+    return `<tr><td>${pm.names[i]}</td>${cells}<td class="n"><b>${fmt(pm.R[i])}</b></td></tr>`;}).join('');
+  const foot=pm.colT.map(v=>`<td class="n">${fmt(v)}</td>`).join('');
   return `<section class="sec"><div class="sechd"><span class="n">04</span><h2>Pendency Analysis</h2><div class="rule"></div></div>
    <div class="grid g2">
-    <div class="card">${chip('live')}
-      <div class="cap">Pending applications by ageing bucket</div>
-      <div class="donutwrap">${donut(d.age,AGE_COLORS,d.ageTot)}
-        <div class="leg">${rows}</div></div></div>
-    <div class="card">${chip('live')}
-      <div class="cap">Pending applications by approval</div>
-      <div class="bars pend">${pbars}</div></div>
+    <div class="card">${chip('live')}<div class="cap">Pending applications by ageing bucket</div>
+      <div class="donutwrap">${donut(pm.colT,AGE_COLORS,pm.T)}
+        <div class="leg">${legrows}</div></div></div>
+    <div class="card">${chip('build')}<div class="cap">Pending by approval · split by age</div>
+      <div class="agelegend">${agelegend}</div>
+      <div class="bars pend">${stbars}</div></div>
+   </div>
+   <div class="card" style="margin-top:14px">${chip('build')}<div class="cap">Pending applications · approval × age (count) &nbsp;·&nbsp; click a count to view applications</div>
+     <div class="mxwrap"><table class="matrix"><thead><tr><th>Approval</th>${head}<th class="n">Total</th></tr></thead>
+       <tbody>${mrows}</tbody>
+       <tfoot><tr><td>Total</td>${foot}<td class="n">${fmt(pm.T)}</td></tr></tfoot>
+     </table></div>
+     <div id="cellDetail" class="apprdetail"></div>
    </div></section>`;
 }
 
